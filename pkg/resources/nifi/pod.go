@@ -177,7 +177,7 @@ do
 		IFS=':' read -r -a zk_host_port <<< "${zk_host}"
 		
 		echo "Checking Zookeeper Host: [${zk_host_port[0]}] Port: [${zk_host_port[1]}]"
-		nc -vzw 1 ${zk_host_port[0]} ${zk_host_port[1]}
+		cat < /dev/null > /dev/tcp/${zk_host_port[0]}/${zk_host_port[1]}
 		if [ $? -eq 0 ]; then
 			echo "Connected to ${zk_host_port}"
 			connected=1
