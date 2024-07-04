@@ -532,7 +532,14 @@ done
 echo "Hostname is successfully binded withy IP address"`, nodeAddress, nodeAddress)
 	}
 
-	secretReplacement := fmt.Sprintf(`if [ "${NIFI_SECURITY_OIDC_ENABLED}" = "true" ]; then 
+	secretReplacement := fmt.Sprintf(`echo "NIFI_SECURITY_OIDC_CLIENT_ID: $NIFI_SECURITY_OIDC_CLIENT_ID"
+echo "NIFI_SECURITY_OIDC_CLIENT_SECRET: $NIFI_SECURITY_OIDC_CLIENT_SECRET"
+echo "NIFI_SECURITY_OIDC_ENABLED: $NIFI_SECURITY_OIDC_ENABLED"
+echo "Strip quotes from the environment variables"
+NIFI_SECURITY_OIDC_CLIENT_ID=$(echo ${NIFI_SECURITY_OIDC_CLIENT_ID} | tr -d '"')
+NIFI_SECURITY_OIDC_CLIENT_SECRET=$(echo ${NIFI_SECURITY_OIDC_CLIENT_SECRET} | tr -d '"')
+NIFI_SECURITY_OIDC_ENABLED=$(echo ${NIFI_SECURITY_OIDC_ENABLED} | tr -d '"')
+if [[ "${NIFI_SECURITY_OIDC_ENABLED}" == "true" ]]; then 
 	echo "Populating configuration files with secrets..."
 	prop_replace () {
 		target_file=${NIFI_HOME}/conf/${3:-nifi.properties}
@@ -547,7 +554,11 @@ echo "Hostname is successfully binded withy IP address"`, nodeAddress, nodeAddre
 	prop_replace nifi.security.user.oidc.client.secret ${NIFI_SECURITY_OIDC_CLIENT_SECRET}
 	xmlstarlet ed --inplace --update "//authorizers/userGroupProvider/property[@name='Application ID']" -v ${NIFI_SECURITY_OIDC_CLIENT_ID} "${NIFI_HOME}/conf/authorizers.xml"
 	xmlstarlet ed --inplace --update  "//authorizers/userGroupProvider/property[@name='Client Secret']" -v ${NIFI_SECURITY_OIDC_CLIENT_SECRET} "${NIFI_HOME}/conf/authorizers.xml"
-fi`)
+fi
+echo "conf/authorizers.xml:"
+cat ${NIFI_HOME}/conf/authorizers.xml
+echo "conf/nifi.properties:"
+cat ${NIFI_HOME}/conf/nifi.properties`)
 	command := []string{"bash", "-ce", fmt.Sprintf(`cp ${NIFI_HOME}/tmp/* ${NIFI_HOME}/conf/
 %s
 %s
