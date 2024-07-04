@@ -531,10 +531,28 @@ do
 done
 echo "Hostname is successfully binded withy IP address"`, nodeAddress, nodeAddress)
 	}
+
+	secretReplacement := fmt.Sprintf(`if [ "${NIFI_SECURITY_OIDC_ENABLED}" = "true" ]; then 
+	echo "Populating configuration files with secrets..."
+	prop_replace () {
+		target_file=${NIFI_HOME}/conf/${3:-nifi.properties}
+		echo "updating ${1} in ${target_file}"
+		if egrep "^${1}=" ${target_file} &> /dev/null; then
+			sed -i -e "s|^$1=.*$|$1=$2|" ${target_file}
+		else
+			echo ${1}=${2} >> ${target_file}
+		fi
+	}
+	prop_replace nifi.security.user.oidc.client.id ${NIFI_SECURITY_OIDC_CLIENT_ID}
+	prop_replace nifi.security.user.oidc.client.secret ${NIFI_SECURITY_OIDC_CLIENT_SECRET}
+	xmlstarlet ed --inplace --update "//authorizers/userGroupProvider/property[@name='Application ID']" -v ${NIFI_SECURITY_OIDC_CLIENT_ID} "${NIFI_HOME}/conf/authorizers.xml"
+	xmlstarlet ed --inplace --update  "//authorizers/userGroupProvider/property[@name='Client Secret']" -v ${NIFI_SECURITY_OIDC_CLIENT_SECRET} "${NIFI_HOME}/conf/authorizers.xml"
+fi`)
 	command := []string{"bash", "-ce", fmt.Sprintf(`cp ${NIFI_HOME}/tmp/* ${NIFI_HOME}/conf/
 %s
 %s
-exec bin/nifi.sh run`, resolveIp, singleUser)}
+%s
+exec bin/nifi.sh run`, secretReplacement, resolveIp, singleUser)}
 
 	return corev1.Container{
 		Name:            ContainerName,
